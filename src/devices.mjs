@@ -18,17 +18,6 @@ function kit(){
  function finish(camera){return{root,modules,names,rotors:[],hot:[],parts,mats,count,camera,update:(time,power)=>motions.forEach(fn=>fn(time,power))};}
  return{root,modules,names,mats,parts,motions,mesh,box,cyl,torus,rod,pipe,bolts,part,group,base,finish};
 }
-function indicator(){
- const k=kit(),{box,cyl,torus,rod,bolts,part,group}=k;k.base(7,3.8);
- let g=part('rails','Направляющие');for(const z of [-.65,.65]){rod(g,[-2.7,.65,z],[2.7,.65,z],.09);for(const x of [-2.6,2.6])box(g,[x,.44,z],[.4,.4,.4],'teal');}
- g=part('carriage','Измерительная каретка');const slide=group(g);box(slide,[.7,.77,0],[2.25,.24,1.65],'teal');for(let i=0;i<3;i++)box(slide,[i*.58,.97+i*.09,0],[.5,.16+i*.18,.72],'bright');for(let i=0;i<22;i++)box(slide,[-.3+i*.09,.90,.73],[.012,.015,i%5===0?.16:.08],'bright');
- g=part('post','Стойка индикатора');box(g,[-2.2,.55,-.7],[.9,.65,.9],'teal');cyl(g,[-2.2,2.0,-.7],.13,2.5);torus(g,[-2.2,1,-.7],.15,.045,'brass');
- g=part('arm','Кронштейн с зажимом');box(g,[-2.2,2.75,-.7],[.5,.5,.45],'dark');rod(g,[-2.2,2.75,-.7],[.8,2.75,-.7],.11);cyl(g,[-2.2,2.75,-.38],.21,.18,'brass','z');for(let i=0;i<20;i++){const a=i*Math.PI/10;box(g,[-2.2+.2*Math.cos(a),2.75+.2*Math.sin(a),-.38],[.03,.03,.19],'dark');}
- g=part('dial','Корпус индикатора');cyl(g,[.65,2.60,-.23],.71,.4,'dark','z');torus(g,[.65,2.60,0],.69,.065,'bright','z');cyl(g,[.65,2.60,.005],.63,.02,'ivory','z');for(let i=0;i<60;i++){const a=i*Math.PI/30,o=box(g,[.65+Math.sin(a)*.55,2.60+Math.cos(a)*.55,.025],[.015,i%5===0?.12:.055,.012],'black');o.rotation.z=-a;}bolts(g,[.65,2.60,.04],.7,4,'z');
- g=part('probe','Измерительный шток');cyl(g,[.65,1.65,-.18],.11,.68,'bright');cyl(g,[.65,1.29,-.18],.055,.15,'brass');for(let i=0;i<10;i++)torus(g,[.65,1.50+i*.035,-.18],.12,.015,'dark');
- g=part('needle','Стрелочный механизм');const needle=group(g,[.65,2.60,.06]);box(needle,[0,.23,0],[.035,.55,.025],'red');cyl(g,[.65,2.60,.08],.09,.06,'brass','z');
- k.motions.push((t,p)=>{slide.position.x=Math.sin(t*.35)*.5*p;needle.rotation.z=-Math.sin(t*.35)*1.5*p;});return k.finish({target:[0,1.5,0],span:8,distance:17});
-}
 function waves(){
  const k=kit(),{box,cyl,torus,rod,pipe,part,group}=k;k.base(7,5);
  let g=part('legs','Опоры резервуара');for(const x of [-2.65,2.65])for(const z of [-1.8,1.8]){rod(g,[x,.3,z],[x,1.5,z],.11);cyl(g,[x,.4,z],.2,.15,'brass');}
@@ -119,4 +108,4 @@ function rocket(){
  k.motions.push((t,p)=>{flame.visible=p>.02;flameMat.opacity=p*.42;plume.scale.x=plume.scale.z=1+Math.sin(t*7)*.025*p;});flame.visible=false;
  return k.finish({target:[0,3.8,0],span:8,distance:24});
 }
-export function makeDevice(id){const builders={indicator,waves,computer,arcade,hand,rocket};if(!builders[id])throw new Error('Unknown device '+id);return builders[id]();}
+export function makeDevice(id){const builders={waves,computer,arcade,hand,rocket};if(!builders[id])throw new Error('Unknown device '+id);return builders[id]();}

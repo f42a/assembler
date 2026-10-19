@@ -4,7 +4,7 @@ import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {makeEngine} from './engine.mjs';
 import {makeDevice} from './devices.mjs';
 import {follow} from './model.mjs';
-import {PROJECTS,shuffle,canSeat,complete,snapRadius} from './assembly-model.mjs';
+import {PROJECTS,shuffle,canSeat,complete,snapRadius,blueprintEdges} from './assembly-model.mjs';
 const $=s=>document.querySelector(s),host=$('#viewport');
 let renderer;
 try{renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'high-performance'});}catch(e){$('#fallback').hidden=false;host.hidden=true;$('#assembly').disabled=true;$('#run').disabled=true;throw e;}
@@ -31,6 +31,7 @@ function startProject(index){
  engine=config.id==='turbine'?makeEngine():makeDevice(config.id);scene.add(engine.root);
  if(!engine.camera)engine.camera={target:[-.4,2.4,0],span:13,distance:24};
  const moduleIds=config.modules||Object.keys(engine.modules);
+ engine.update?.(0,0);
  engine.root.updateMatrixWorld(true);
  for(const id of moduleIds){
   const g=engine.modules[id],count=config.splits?.[id]||1,children=[...g.children];
@@ -52,15 +53,16 @@ function startProject(index){
    for(const child of group.children)child.position.sub(home);
    group.position.copy(home);group.updateMatrixWorld(true);
    const isRotor=children.some(o=>engine.rotors.includes(o));
-   const p={id:`${id}-${i}`,module:id,obj:group,home,installed:false,turn:Math.random()<.5?0:1,requires:[],rotor:isRotor,name:count===1?(engine.names?.[id]||moduleNames[id]):isRotor?(id==='inlet'?'Обтекатель':id==='compressor'?'Рабочее колесо компрессора':'Рабочее колесо турбины'):(id==='compressor'?'Статор и корпус':id==='combustor'?'Секция камеры сгорания':id==='nozzle'?'Секция сопла':moduleNames[id])};
+   const p={id:`${id}-${i}`,module:id,obj:group,home,installed:false,turn:0,requires:[],rotor:isRotor,name:count===1?(engine.names?.[id]||moduleNames[id]):isRotor?(id==='inlet'?'Обтекатель':id==='compressor'?'Рабочее колесо компрессора':'Рабочее колесо турбины'):(id==='compressor'?'Статор и корпус':id==='combustor'?'Секция камеры сгорания':id==='nozzle'?'Секция сопла':moduleNames[id])};
    group.traverse(o=>o.userData.piece=p.id);pieces.push(p);
   });
  }
- drawing=new THREE.Group();drawing.position.copy(engine.root.position);scene.add(drawing);
+ drawing=new THREE.Group();drawing.position.copy(engine.root.position);scene.add(drawing);drawing.updateMatrixWorld(true);
  // Build the drawing from final component transforms, not the loose kit.
  for(const p of [...pieces,...engine.root.children.filter(o=>!o.userData.effect&&!pieces.some(p=>p.obj===o)&&!Object.values(engine.modules).includes(o)).map(obj=>({obj}))]){p.obj.updateMatrixWorld(true);const outlines=new THREE.Group();drawing.add(outlines);
- p.obj.traverse(o=>{if(!o.isMesh||o.material.opacity===0||o.userData.noDrawing||o.userData.components===112)return;const geo=new THREE.EdgesGeometry(o.geometry,38),mat=new THREE.LineBasicMaterial({color:0xa0c9d6,transparent:true,opacity:.42});
- for(let i=0;i<(o.isInstancedMesh?o.count:1);i++){const line=new THREE.LineSegments(geo,mat),m=o.matrixWorld.clone();if(o.isInstancedMesh){const inst=new THREE.Matrix4();o.getMatrixAt(i,inst);m.multiply(inst);}m.elements[13]-=engine.root.position.y;line.applyMatrix4(m);outlines.add(line);}
+ p.obj.traverse(o=>{if(!o.isMesh||o.material.opacity===0||o.userData.noDrawing)return;
+ for(let ancestor=o;ancestor&&ancestor!==p.obj.parent;ancestor=ancestor.parent)if(!ancestor.visible)return;const geo=blueprintEdges(o.geometry),mat=new THREE.LineBasicMaterial({color:0xa0c9d6,transparent:true,opacity:.55});
+ for(let i=0;i<(o.isInstancedMesh?o.count:1);i++){const line=new THREE.LineSegments(geo,mat),m=o.matrixWorld.clone();if(o.isInstancedMesh){const inst=new THREE.Matrix4();o.getMatrixAt(i,inst);m.multiply(inst);}m.premultiply(drawing.matrixWorld.clone().invert());const surface=new THREE.Mesh(o.geometry,new THREE.MeshBasicMaterial({color:0x1d2a30,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1}));surface.applyMatrix4(m);outlines.add(surface);line.applyMatrix4(m);outlines.add(line);}
  });}
  // Engineering centreline stays in the drawing only and remains readable through dense edges.
  if(config.id==='turbine'){
@@ -153,7 +155,7 @@ function tick(now){frame=0;const dt=Math.min((now-last)/1000||.016,.05);last=now
 }
 function kick(){if(!frame&&!document.hidden)frame=requestAnimationFrame(tick);}
 controls.addEventListener('change',kick);
-$('#assembly').onclick=()=>{blueprint=!blueprint;ui();report('');resize();fitCamera();};
+$('#assembly').onclick=()=>{blueprint=!blueprint;ui();report('');resize();};
 $('#flip').onclick=flip;$('#put-back').onclick=putBack;
 $('#run').onclick=()=>{running=!running;ui();kick();};$('#next').onclick=()=>startProject(Math.min(PROJECTS.length-1,project+1));
 $('#projects').onclick=e=>{const b=e.target.closest('[data-project]');if(b&&+b.dataset.project!==project)startProject(+b.dataset.project);};

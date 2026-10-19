@@ -1,5 +1,5 @@
+import {EdgesGeometry} from 'three';
 export const PROJECTS=[
- {id:'indicator',title:'Измерительный стенд',count:7},
  {id:'waves',title:'Волновая установка',count:9},
  {id:'computer',title:'Настольный компьютер',count:11},
  {id:'arcade',title:'Аркадный автомат',count:13},
@@ -11,3 +11,6 @@ export function shuffle(items,rng=Math.random){const a=[...items];for(let i=a.le
 export function snapRadius(width){return Math.min(32,Math.max(22,width*.035));}
 export function canSeat(part,parts,distance,radius){return !part.installed && Number.isFinite(distance) && distance<=radius;}
 export function complete(parts){return parts.length>0&&parts.every(p=>p.installed);}
+
+// Preserve longitudinal edges of round parts, not only their end rings.
+export function blueprintEdges(geometry){return new EdgesGeometry(geometry,2);}
